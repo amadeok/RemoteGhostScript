@@ -1,3 +1,4 @@
+from logging import exception
 import socket
 
 from subprocess import Popen, PIPE, STDOUT
@@ -18,92 +19,75 @@ gs_ps_pdf = [gs_bin, "-dCompatibilityLevel#1.4",  "-P-", "-dNOSAFER", "-dNOPAUSE
 
 # HOST = '192.168.1.230'  # Standard loopback interface address (localhost)
 # PORT = 9595        # Port to listen on (non-privileged ports are > 1023)
-REM_HOST = '95.234.158.110'  # Standard loopback interface address (localhost)
+REM_HOST = '79.23.199.214'  # Standard loopback interface address (localhost)
 REM_PORT = 27427     # Port to listen on (non-privileged ports are > 1023)
 print ("started")
 import time
 print_ps_directly = True
+try:
+  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+      print("Connecting to " + REM_HOST + ":" + str(REM_PORT))
+      s.connect((REM_HOST, REM_PORT))
+      print("Socket connected")
+      while 1:
+            size_b = s.recv(4)
+            size = int.from_bytes(size_b, 'little')
+            print("receving " + str(size) + " bytes")
+            recv_data=[]
+            recv_data = b''
+            rem = size
+            buf = 500
+            while True:
+              data=s.recv(buf)
+              rem-= len(data)
+              if (rem < 500):
+                buf = rem
+              l =  0
+            # for ch in recv_data:
+                #l += len(ch)
+              recv_data +=data;
+              l = len(recv_data)
+              if not data or l >= size:
+                break
+              
+            recv_size = len(recv_data)
+            if recv_size != size:
+              print("error dif size")
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    print("Connecting to " + REM_HOST + ":" + str(REM_PORT))
-    s.connect((REM_HOST, REM_PORT))
-    print("Socket connected")
-    while 1:
-          size_b = s.recv(4)
-          size = int.from_bytes(size_b, 'little')
-          print("receving " + str(size) + " bytes")
-          #while True:
-          #data = conn.recv(size)
+            s.sendall(recv_data) 
 
+            re = s.recv(1)
+            print(re)
+            # f=open('I_recved_this.Ps','wb')
 
-          recv_data=[]
-          recv_data = b''
-          rem = size
-          buf = 500
-          while True:
-            data=s.recv(buf)
-            rem-= len(data)
-            if (rem < 500):
-              buf = rem
-
+            # f.write(recv_data)
+            # f.flush()
+            # f.close()
             
+            if print_ps_directly:
+              print("running :"  + str(ps_print))
+              p = Popen(ps_print, stdout=PIPE, stdin=PIPE, stderr=STDOUT)    
+              grep_stdout = p.communicate(input=recv_data)[0]
 
-            l =  0
-           # for ch in recv_data:
-              #l += len(ch)
-            recv_data +=data;
-            l = len(recv_data)
-            if not data or l >= size:
-              break
+            else:
+              p = Popen(gs_ps_pdf, stdout=PIPE, stdin=PIPE, stderr=STDOUT)    
+              grep_stdout = p.communicate(input=recv_data)[0]
 
-            #recv_data.append(data)
-          #recv_data=''.join(recv_data)
+              # f=open('converted.pdf','wb')
+              # f.write(grep_stdout)
+              # f.flush()
 
-          recv_size = len(recv_data)
-          if recv_size != size:
-            print("error dif size")
-          # if not data:
-          #     break
-          s.sendall(recv_data) 
-         # conn.send(data)
-          #time.sleep(1)
-          re = s.recv(1)
-          print(re)
-          f=open('I_recved_this.Ps','wb')
+              p.wait()
+              print("to pdf")
+              grep_stdout = grep_stdout[37:-1]
 
-          f.write(recv_data)
-          f.flush()
-          f.close()
-          
-          if print_ps_directly:
-            print("running :"  + str(ps_print))
-            p = Popen(ps_print, stdout=PIPE, stdin=PIPE, stderr=STDOUT)    
-            grep_stdout = p.communicate(input=recv_data)[0]
-
-          else:
-            p = Popen(gs_ps_pdf, stdout=PIPE, stdin=PIPE, stderr=STDOUT)    
-            grep_stdout = p.communicate(input=recv_data)[0]
-
-            f=open('converted.pdf','wb')
-            f.write(grep_stdout)
-            f.flush()
-
-            p.wait()
-            print("to pdf")
-            grep_stdout = grep_stdout[37:-1]
-
-                # # with open("convertedfixed.pdf", "rb") as inp:
-                # #     data = inp.read()
-
-                # f=open('convertedf.pdf','wb')
-                # f.write(grep_stdout)
-                # f.flush()
-
-            p = Popen(print_cmd,  stdout=PIPE, stdin=PIPE, stderr=STDOUT)      
-            grep_stdout2 = p.communicate(input=grep_stdout)[0]
-            print(grep_stdout2)
-            p.wait()
-
+              p = Popen(print_cmd,  stdout=PIPE, stdin=PIPE, stderr=STDOUT)      
+              grep_stdout2 = p.communicate(input=grep_stdout)[0]
+              print(grep_stdout2)
+              p.wait()
+except Exception as e:
+  print(e)
+  ret = input("Press enter to exit")
 
 
 

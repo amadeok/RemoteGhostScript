@@ -1,7 +1,3 @@
-"""
-We could use RedMon to redirect a port to a program, but the idea of this file is to bypass that.
-Instead, we simply set up a loopback ip and act like a network printer.
-"""
 import os
 import time
 import socket
@@ -178,14 +174,18 @@ if __name__=='__main__':
 
 
 	while 1:
-		print("lisetining at " + REM_HOST + ":" + str(REM_PORT))
-		with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-			s.bind((REM_HOST, REM_PORT))
-			s.listen()
-			conn, addr = s.accept()
-			print("Socket connected " + addr[0] + ":" + str(addr[1]))
-			b = b"\x00\x00\x00\x01"
-			#conn.sendall(b)
-			ps=PrintServer(ip, port)
-			ps.remote_socket = conn
-			ps.run()
+		try:
+			print("lisetining at " + REM_HOST + ":" + str(REM_PORT))
+			with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+				s.bind((REM_HOST, REM_PORT))
+				s.listen()
+				conn, addr = s.accept()
+				print("Socket connected " + addr[0] + ":" + str(addr[1]))
+				b = b"\x00\x00\x00\x01"
+				#conn.sendall(b)
+				ps=PrintServer(ip, port)
+				ps.remote_socket = conn
+				ps.run()
+		except Exception as e:
+			print(e)
+			time.sleep(1)
